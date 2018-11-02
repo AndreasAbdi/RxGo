@@ -3,8 +3,16 @@ package observable
 import (
 	"testing"
 
+	"github.com/reactivex/rxgo/rx"
+
 	"github.com/stretchr/testify/assert"
 )
+
+func TestImplementsObservable(t *testing.T) {
+	var observable interface{} = DefaultObservable
+	_, isObservable := observable.(rx.Observable)
+	assert.True(t, isObservable, "observable should be implementation of interface")
+}
 
 func TestDefaultObservable(t *testing.T) {
 	assert.Equal(t, 0, cap(DefaultObservable))

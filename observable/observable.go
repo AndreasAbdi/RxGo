@@ -1,6 +1,7 @@
 package observable
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/reactivex/rxgo/fx"
 	"github.com/reactivex/rxgo/handlers"
 	"github.com/reactivex/rxgo/observer"
+	rxx "github.com/reactivex/rxgo/rx"
 )
 
 // Observable is a basic observable channel
@@ -43,6 +45,40 @@ func (o Observable) Next() (interface{}, error) {
 		return next, nil
 	}
 	return nil, errors.New(errors.EndOfIteratorError)
+}
+
+// Subscribe the observer to the observerable and makes them emit events.
+func (o Observable) Subscribe(observer rxx.Observer) rxx.Emitter {
+	emitter, signalSubscriptionComplete := o.constructEmitter()
+	emitter.Subscribe()
+
+	handleSubscriptionTermination := func(err error) {
+		if err == nil {
+			observer.OnDone()
+		}
+		signalSubscriptionComplete()
+	}
+
+	go func() {
+		var err error
+		defer handleSubscriptionTermination(err)
+		for item := range o {
+			switch item := item.(type) {
+			case error:
+				observer.OnError(item)
+				err = item
+				return
+			default:
+				observer.OnNext(item)
+			}
+		}
+	}()
+	return emitter
+}
+
+func (o Observable) constructEmitter() (*Emitter, context.CancelFunc) {
+	context, cancelFunc := context.WithCancel(context.Background())
+	return NewEmitter(context), cancelFunc
 }
 
 // func (o Observable) Subscribe(ob base.Observer, ctxfunc interface{}) (context.Context, context.CancelFunc) {
