@@ -1,7 +1,6 @@
 package observable
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -10,8 +9,6 @@ import (
 	"github.com/reactivex/rxgo/fx"
 	"github.com/reactivex/rxgo/handlers"
 	"github.com/reactivex/rxgo/observer"
-
-	base "github.com/reactivex/rxgo/rx"
 )
 
 // Observable is a basic observable channel
@@ -48,13 +45,13 @@ func (o Observable) Next() (interface{}, error) {
 	return nil, errors.New(errors.EndOfIteratorError)
 }
 
-func (o Observable) Subscribe(ob base.Observer, ctxfunc interface{}) (context.Context, context.CancelFunc) {
-	if ctxfunc == nil {
-		ctxfunc = context.WithCancel
-	}
-	ctx, cancel := ctxfunc(context.Background())
-	defer cancel()
-}
+// func (o Observable) Subscribe(ob base.Observer, ctxfunc interface{}) (context.Context, context.CancelFunc) {
+// 	if ctxfunc == nil {
+// 		ctxfunc = context.WithCancel
+// 	}
+// 	ctx, cancel := ctxfunc(context.Background())
+// 	defer cancel()
+// }
 
 // Subscribe subscribes an EventHandler and returns a Subscription channel.
 /* func (o Observable) Subscribe(handler rx.EventHandler) <-chan subscription.Subscription {
