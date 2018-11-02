@@ -2,6 +2,7 @@ package observable
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -53,4 +54,35 @@ func TestEmitterSubscribeAt(t *testing.T) {
 	emitterSubscriptionTime := emitter.SubscribeAt()
 	assert.True(t, emitterSubscriptionTime.After(beforeSubscription), "time less than a time evaluation before subscription")
 	assert.True(t, emitterSubscriptionTime.Before(afterSubscription), "time greater than time evaluation after subscription")
+}
+
+func TestEmitterDeadline(t *testing.T) {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(0))
+	emitter := NewEmitter(ctx)
+	deadline, deadlineSet := emitter.Deadline()
+	afterDeadlineTime := time.Now()
+	done := emitter.Done()
+	select {
+	case <-done:
+		assert.True(t, deadlineSet, "deadline should have been set")
+		assert.True(t, deadline.Before(afterDeadlineTime), "deadline should have occured already")
+	default:
+		t.Error("cancelling the context did not signal the emitter")
+	}
+	cancelFunc()
+}
+
+func TestEmitterSettingError(t *testing.T) {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(0))
+	emitter := NewEmitter(ctx)
+	newFakeError := errors.New("some new error")
+	emitter.Error = newFakeError
+	done := emitter.Done()
+	select {
+	case <-done:
+		assert.EqualError(t, emitter.Err(), newFakeError.Error())
+	default:
+		t.Error("cancelling the context did not signal the emitter")
+	}
+	cancelFunc()
 }

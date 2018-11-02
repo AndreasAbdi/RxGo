@@ -9,6 +9,7 @@ import (
 type Emitter struct {
 	ctx              context.Context
 	subscriptionTime time.Time
+	Error            error
 }
 
 // NewEmitter constructs a new emitter
@@ -30,6 +31,9 @@ func (e *Emitter) Done() <-chan struct{} {
 
 // Err returns the error that has occured for the emitter.
 func (e *Emitter) Err() error {
+	if e.Error != nil {
+		return e.Error
+	}
 	return e.ctx.Err()
 }
 
