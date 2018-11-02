@@ -8,8 +8,6 @@ import (
 	"github.com/reactivex/rxgo"
 	"github.com/reactivex/rxgo/errors"
 	"github.com/reactivex/rxgo/fx"
-	"github.com/reactivex/rxgo/handlers"
-	"github.com/reactivex/rxgo/observer"
 	rxx "github.com/reactivex/rxgo/rx"
 )
 
@@ -21,22 +19,6 @@ var DefaultObservable = make(Observable)
 // New creates an Observable
 func New(buffer uint) Observable {
 	return make(Observable, int(buffer))
-}
-
-// CheckEventHandler checks the underlying type of an EventHandler.
-func CheckEventHandler(handler rx.EventHandler) observer.Observer {
-	ob := observer.DefaultObserver
-	switch handler := handler.(type) {
-	case handlers.NextFunc:
-		ob.NextHandler = handler
-	case handlers.ErrFunc:
-		ob.ErrHandler = handler
-	case handlers.DoneFunc:
-		ob.DoneHandler = handler
-	case observer.Observer:
-		ob = handler
-	}
-	return ob
 }
 
 // Next returns the next item on the Observable.
