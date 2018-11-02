@@ -10,7 +10,7 @@ import (
 )
 
 func TestImplementsEmitter(t *testing.T) {
-	assert.Implements(t, (*rx.Emitter)(nil), Emitter{})
+	assert.Implements(t, (*rx.Emitter)(nil), &Emitter{})
 }
 
 func TestConstructEmitterFromContext(t *testing.T) {

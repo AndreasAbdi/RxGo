@@ -12,8 +12,8 @@ type Emitter struct {
 }
 
 // NewEmitter constructs a new emitter
-func NewEmitter(ctx context.Context) Emitter {
-	return Emitter{
+func NewEmitter(ctx context.Context) *Emitter {
+	return &Emitter{
 		ctx: ctx,
 	}
 }
