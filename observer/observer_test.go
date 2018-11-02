@@ -3,10 +3,17 @@ package observer
 import (
 	"testing"
 
+	"github.com/reactivex/rxgo/rx"
+
 	"github.com/reactivex/rxgo/handlers"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestImplementsInterface(t *testing.T) {
+	var observer interface{} = DefaultObserver
+	_, isObserver := observer.(rx.Observer)
+	assert.True(t, isObserver, "observer should be implementation of observer interface")
+}
 func TestCreateNewObserverWithConstructor(t *testing.T) {
 	assert := assert.New(t)
 	ob := New()
