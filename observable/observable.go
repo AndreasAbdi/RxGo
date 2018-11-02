@@ -5,8 +5,10 @@ import (
 	"sync"
 	"time"
 
+	rxerr "github.com/reactivex/rxgo/errors"
+
 	"github.com/reactivex/rxgo"
-	"github.com/reactivex/rxgo/errors"
+
 	"github.com/reactivex/rxgo/fx"
 	rxx "github.com/reactivex/rxgo/rx"
 )
@@ -26,7 +28,7 @@ func (o Observable) Next() (interface{}, error) {
 	if next, ok := <-o; ok {
 		return next, nil
 	}
-	return nil, errors.New(errors.EndOfIteratorError)
+	return nil, rxerr.New(rxerr.EndOfIteratorError)
 }
 
 // Subscribe the observer to the observerable and makes them emit events.
@@ -34,21 +36,20 @@ func (o Observable) Subscribe(observer rxx.Observer) rxx.Emitter {
 	emitter, signalSubscriptionComplete := o.constructEmitter()
 	emitter.Subscribe()
 
-	handleSubscriptionTermination := func(err error) {
-		if err == nil {
-			observer.OnDone()
-		}
-		signalSubscriptionComplete()
-	}
-
 	go func() {
 		var err error
-		defer handleSubscriptionTermination(err)
+		defer func() {
+			if err == nil {
+				observer.OnDone()
+			}
+			signalSubscriptionComplete()
+		}()
 		for item := range o {
 			switch item := item.(type) {
 			case error:
-				observer.OnError(item)
 				err = item
+				emitter.Error = item
+				observer.OnError(item)
 				return
 			default:
 				observer.OnNext(item)
@@ -62,48 +63,6 @@ func (o Observable) constructEmitter() (*Emitter, context.CancelFunc) {
 	context, cancelFunc := context.WithCancel(context.Background())
 	return NewEmitter(context), cancelFunc
 }
-
-// func (o Observable) Subscribe(ob base.Observer, ctxfunc interface{}) (context.Context, context.CancelFunc) {
-// 	if ctxfunc == nil {
-// 		ctxfunc = context.WithCancel
-// 	}
-// 	ctx, cancel := ctxfunc(context.Background())
-// 	defer cancel()
-// }
-
-// Subscribe subscribes an EventHandler and returns a Subscription channel.
-/* func (o Observable) Subscribe(handler rx.EventHandler) <-chan subscription.Subscription {
-	done := make(chan subscription.Subscription)
-	sub := subscription.New().Subscribe()
-
-	ob := CheckEventHandler(handler)
-
-	go func() {
-	OuterLoop:
-		for item := range o {
-			switch item := item.(type) {
-			case error:
-				ob.OnError(item)
-
-				// Record the error and break the loop.
-				sub.Error = item
-				break OuterLoop
-			default:
-				ob.OnNext(item)
-			}
-		}
-
-		// OnDone only gets executed if there's no error.
-		if sub.Error == nil {
-			ob.OnDone()
-		}
-
-		done <- sub.Unsubscribe()
-		return
-	}()
-
-	return done
-} */
 
 /*
 func (o Observable) Unsubscribe() subscription.Subscription {

@@ -1,27 +1,18 @@
 package observable
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/reactivex/rxgo/errors"
 	"github.com/reactivex/rxgo/fx"
-	"github.com/reactivex/rxgo/iterable"
-
 	"github.com/reactivex/rxgo/handlers"
+	"github.com/reactivex/rxgo/iterable"
 	"github.com/reactivex/rxgo/observer"
-
-	"github.com/reactivex/rxgo/rx"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestImplementsObservable(t *testing.T) {
-	var observable interface{} = DefaultObservable
-	_, isObservable := observable.(rx.Observable)
-	assert.True(t, isObservable, "observable should be implementation of interface")
-}
 
 func TestDefaultObservable(t *testing.T) {
 	assert.Equal(t, 0, cap(DefaultObservable))
@@ -38,29 +29,6 @@ func TestCreateObservableWithConstructor(t *testing.T) {
 		assert.Equal(3, cap(stream2))
 	}
 
-}
-
-func TestCheckEventHandler(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip testing of unexported testCheckEventHandler")
-	}
-
-	testtext := ""
-
-	df := handlers.DoneFunc(func() {
-		testtext += "done"
-	})
-
-	myObserver := observer.New(df)
-
-	ob1 := CheckEventHandler(myObserver)
-	ob2 := CheckEventHandler(df)
-
-	ob1.OnDone()
-	assert.Equal(t, "done", testtext)
-
-	ob2.OnDone()
-	assert.Equal(t, "donedone", testtext)
 }
 
 func TestEmptyOperator(t *testing.T) {
@@ -111,7 +79,7 @@ func TestRangeOperator(t *testing.T) {
 		nums = append(nums, 1000)
 	})
 
-	emitter := myStream.Subscribe(observer.New(onNext, onDone))
+	emitter := myStream.Subscribe(observer.New(observer.New(onNext, onDone)))
 	<-emitter.Done()
 
 	assert.Exactly(t, []int{2, 3, 4, 5, 1000}, nums)
@@ -254,20 +222,20 @@ func TestStartOperator(t *testing.T) {
 
 	myObserver := observer.New(onNext, onError, onDone)
 
-	myStream := Start(d1, d3, d4, e1, d2)
+	myStream := Start(d1, d2, d3, e1, d4)
 
-	emitter := myStream.Subscribe(myObserver)
-	s := <-emitter.Done()
+	emitter := myStream.Subscribe(observer.New(myObserver))
+	<-emitter.Done()
 
 	assert.Exactly(t, []int{200, 301, 500}, responseCodes)
-	assert.Equal(t, "Bad URL", s.Err().Error())
+	assert.Equal(t, "Bad URL", emitter.Err().Error())
 
 	// Error should have prevented OnDone from being called
 	assert.False(t, done)
 }
 
 func TestSubscribeToNextFunc(t *testing.T) {
-	myStream := Just(1, 2, 3, errors.New(4), 5)
+	myStream := Just(1, 2, 3, errors.New("4"), 5)
 	mynum := 0
 
 	nf := handlers.NextFunc(func(item interface{}) {
@@ -291,11 +259,11 @@ func TestSubscribeToErrFunc(t *testing.T) {
 		myerr = err
 	})
 
-	done := myStream.Subscribe(observer.New(ef))
-	emitter := <-done
+	emitter := myStream.Subscribe(observer.New(ef))
+	<-emitter.Done()
 
 	assert.Equal(t, "bang", myerr.Error())
-	assert.Equal(t, "bang", sub.Error.Error())
+	assert.Equal(t, "bang", emitter.Err().Error())
 }
 
 func TestSubscribeToDoneFunc(t *testing.T) {
@@ -307,8 +275,8 @@ func TestSubscribeToDoneFunc(t *testing.T) {
 		donetext = "done"
 	})
 
-	done := myStream.Subscribe(observer.New(df))
-	<-done
+	emitter := myStream.Subscribe(observer.New(df))
+	<-emitter.Done()
 
 	assert.Equal(t, "done", donetext)
 }
@@ -350,8 +318,8 @@ func TestSubscribeToObserver(t *testing.T) {
 
 	ob := observer.New(onNext, onError, onDone)
 
-	done := myStream.Subscribe(observer.New(ob))
-	emitter := <-done
+	emitter := myStream.Subscribe(ob)
+	<-emitter.Done()
 
 	assert.Empty(integers)
 	assert.False(finished)
@@ -368,7 +336,7 @@ func TestSubscribeToObserver(t *testing.T) {
 		assert.Equal(expectedChars[n], char)
 	}
 
-	assert.Equal("bang", sub.Err().Error())
+	assert.Equal("bang", emitter.Err().Error())
 }
 
 func TestObservableMap(t *testing.T) {
@@ -852,7 +820,7 @@ func TestRepeatNtimeOperator(t *testing.T) {
 		stringarray = append(stringarray, "end")
 	})
 
-	emitter := myStream.Subscribe(observer.New(onNext, onDone))
+	emitter := myStream.Subscribe(observer.New(observer.New(onNext, onDone)))
 	<-emitter.Done()
 
 	assert.Exactly(t, []string{"mystring", "mystring", "end"}, stringarray)
@@ -872,7 +840,7 @@ func TestRepeatNtimeMultiVariadicOperator(t *testing.T) {
 		stringarray = append(stringarray, "end")
 	})
 
-	emitter := myStream.Subscribe(observer.New(onNext, onDone))
+	emitter := myStream.Subscribe(observer.New(observer.New(onNext, onDone)))
 	<-emitter.Done()
 
 	assert.Exactly(t, []string{"mystring", "mystring", "end"}, stringarray)
